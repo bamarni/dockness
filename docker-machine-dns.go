@@ -2,13 +2,17 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"github.com/miekg/dns"
 	"log"
 	"net"
+	"os"
 	"os/exec"
+	"os/signal"
 	"strings"
+	"io/ioutil"
 )
+
+var user string
 
 func lookup(w dns.ResponseWriter, r *dns.Msg) {
 	m := new(dns.Msg)
@@ -23,8 +27,9 @@ func lookup(w dns.ResponseWriter, r *dns.Msg) {
 
 		domLevels := strings.Split(q.Name, ".")
 		machine := domLevels[len(domLevels)-3]
-		stdoutBytes, err := exec.Command("docker-machine", "ip", machine).Output()
+		stdoutBytes, err := exec.Command("sudo", "-u", user, "docker-machine", "ip", machine).Output()
 		if err != nil {
+			log.Printf("No IP found for machine '%s'", machine)
 			continue
 		}
 		ip := string(stdoutBytes[:len(stdoutBytes)-1])
@@ -46,12 +51,16 @@ func lookup(w dns.ResponseWriter, r *dns.Msg) {
 }
 
 func main() {
-	port := flag.String("port", "10053", "Port to listen on")
+	port := flag.String("port", "53", "Port to listen on")
+	flag.StringVar(&user, "user", os.Getenv("SUDO_USER"), "Execute the 'docker-machine ip' command as this user")
 	flag.Parse()
 
-	addr := ":"
-	addr += *port
+	confPath := "/etc/resolver/docker"
+	conf := []byte("nameserver 127.0.0.1\nport "+*port+"\n")
+	ioutil.WriteFile(confPath, conf, 0644)
+	defer os.Remove(confPath)
 
+	addr := ":"+*port
 	server := &dns.Server{
 		Addr: addr,
 		Net:  "udp",
@@ -59,6 +68,10 @@ func main() {
 
 	dns.HandleFunc(".", lookup)
 
-	fmt.Printf("Listening on %s...", addr)
-	log.Fatal(server.ListenAndServe())
+	log.Printf("Listening on %s...", addr)
+	go server.ListenAndServe()
+
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt, os.Kill)
+	<-sig
 }
