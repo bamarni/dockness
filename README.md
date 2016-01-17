@@ -2,6 +2,12 @@
 
 DNS for Docker machines, allows to access them with the following domain format : `{machine}.docker`.
 
+## How it works
+
+It spins up a simplistic DNS server, only listening for questions about A records.
+
+Behind the scene it will run `docker-machine ip {machine}` in order to resolve the IP address of a given machine.
+
 ## Installation
 
     go get github.com/bamarni/docker-machine-dns
@@ -32,9 +38,3 @@ To make sure it works properly (let's say for a machine called `dev`) :
     192.168.99.100
     > ping dev.docker
     192.168.99.100
-
-## How it works
-
-It spins up a simplistic DNS server, only listening for questions about A records.
-
-Behind the scene it will run `docker-machine ip {machine}` in order to resolve the IP address of a given machine.
