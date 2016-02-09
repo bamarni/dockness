@@ -27,7 +27,16 @@ func lookup(w dns.ResponseWriter, r *dns.Msg) {
 
 		domLevels := strings.Split(q.Name, ".")
 		machine := domLevels[len(domLevels)-3]
-		stdoutBytes, err := exec.Command("sudo", "-u", user, "docker-machine", "ip", machine).Output()
+
+		var stdoutBytes []byte
+		var err error
+
+		if user == "" {
+			stdoutBytes, err = exec.Command("docker-machine", "ip", machine).Output()
+		} else {
+			stdoutBytes, err = exec.Command("sudo", "-u", user, "docker-machine", "ip", machine).Output()
+		}
+
 		if err != nil {
 			log.Printf("No IP found for machine '%s'", machine)
 			continue
