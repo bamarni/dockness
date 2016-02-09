@@ -10,6 +10,12 @@ Behind the scene it will run `docker-machine ip {machine}` in order to resolve t
 
 ## Installation
 
+### Prebuilt binary (Mac OSX only)
+
+For Mac OSX, a prebuilt binary is available in the [releases](https://github.com/bamarni/docker-machine-dns/releases).
+
+### From source (requires Go)
+
     go get github.com/bamarni/docker-machine-dns
 
 ## Usage
