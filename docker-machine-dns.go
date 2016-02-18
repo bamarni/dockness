@@ -3,13 +3,13 @@ package main
 import (
 	"flag"
 	"github.com/miekg/dns"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
 	"os/exec"
 	"os/signal"
 	"strings"
-	"io/ioutil"
 )
 
 var user string
@@ -61,15 +61,19 @@ func lookup(w dns.ResponseWriter, r *dns.Msg) {
 
 func main() {
 	port := flag.String("port", "53", "Port to listen on")
+	serverOnly := flag.Bool("server-only", false, "Server only, doesn't try to create a resolver configuration")
 	flag.StringVar(&user, "user", os.Getenv("SUDO_USER"), "Execute the 'docker-machine ip' command as this user")
 	flag.Parse()
 
-	confPath := "/etc/resolver/docker"
-	conf := []byte("nameserver 127.0.0.1\nport "+*port+"\n")
-	ioutil.WriteFile(confPath, conf, 0644)
-	defer os.Remove(confPath)
+	if *serverOnly == false {
+		confPath := "/etc/resolver/docker"
+		log.Printf("Creating configuration file at %s...", confPath)
+		conf := []byte("nameserver 127.0.0.1\nport " + *port + "\n")
+		ioutil.WriteFile(confPath, conf, 0644)
+		defer os.Remove(confPath)
+	}
 
-	addr := ":"+*port
+	addr := ":" + *port
 	server := &dns.Server{
 		Addr: addr,
 		Net:  "udp",
