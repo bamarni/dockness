@@ -27,7 +27,7 @@ For Mac OSX, a prebuilt binary is available in the [releases](https://github.com
       -server-only  Server only, doesn't try to create a resolver configuration file
       -user         Execute the "docker-machine ip" command as this user (defaults to "SUDO_USER")
 
-* If you don't feel like running the program with `sudo`, see the [-server-only flag](#server-only)*
+If you don't feel like running the program with `sudo`, see the [-server-only flag](#server-only)
 
 ## Usage example : Mac OSX
 
