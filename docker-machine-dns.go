@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"runtime"
 	"strings"
 )
 
@@ -65,11 +66,13 @@ func main() {
 	flag.StringVar(&user, "user", os.Getenv("SUDO_USER"), "Execute the 'docker-machine ip' command as this user")
 	flag.Parse()
 
-	if *serverOnly == false {
+	if *serverOnly == false && runtime.GOOS == "darwin" {
 		confPath := "/etc/resolver/docker"
 		log.Printf("Creating configuration file at %s...", confPath)
 		conf := []byte("nameserver 127.0.0.1\nport " + *port + "\n")
-		ioutil.WriteFile(confPath, conf, 0644)
+		if err := ioutil.WriteFile(confPath, conf, 0644); err != nil {
+			log.Fatalf("Could not create configuration file: %s", err)
+		}
 		defer os.Remove(confPath)
 	}
 
@@ -79,7 +82,7 @@ func main() {
 		Net:  "udp",
 	}
 
-	dns.HandleFunc(".", lookup)
+	dns.HandleFunc("docker.", lookup)
 
 	log.Printf("Listening on %s...", addr)
 	go server.ListenAndServe()
