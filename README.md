@@ -18,6 +18,8 @@ Prebuilt binaries are available in the [releases](https://github.com/bamarni/doc
 
     go get github.com/bamarni/docker-machine-dns
 
+## Usage
+
 ### Mac OSX
 
 To develop on Mac you probably have a local VM, using VirtualBox for example.
