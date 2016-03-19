@@ -39,7 +39,7 @@ func lookup(w dns.ResponseWriter, r *dns.Msg) {
 		}
 
 		if err != nil {
-			log.Printf("No IP found for machine '%s'", machine)
+			log.Printf("No IP found for machine '%s': %s", machine, err)
 			continue
 		}
 		ip := string(stdoutBytes[:len(stdoutBytes)-1])
@@ -85,7 +85,7 @@ func main() {
 	dns.HandleFunc("docker.", lookup)
 
 	log.Printf("Listening on %s...", addr)
-	go server.ListenAndServe()
+	go log.Fatal(server.ListenAndServe())
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, os.Kill)
