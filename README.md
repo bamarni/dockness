@@ -49,10 +49,10 @@ which provides a lightweight DNS server.
 
 If you have it installed, you can run :
 
-    > sudo docker-machine-dns -port 10053
+    > docker-machine-dns -port 10053
     2016/02/18 10:40:43 Listening on :10053...
 
-Then let Dnsmasq now about the resolver by running those commands :
+Then let Dnsmasq know about the resolver by running those commands :
 
     > echo "server=/docker/127.0.0.1#10053" | sudo tee -a /etc/dnsmasq.conf
     > sudo /etc/init.d/dnsmasq restart
