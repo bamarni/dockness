@@ -27,22 +27,26 @@ func lookup(w dns.ResponseWriter, r *dns.Msg) {
 		}
 
 		domLevels := strings.Split(q.Name, ".")
+		domLevelsLen := len(domLevels)
+		if domLevelsLen < 3 {
+			log.Printf("Couldn't parse the DNS question '%s'", q.Name)
+			continue
+		}
 		machine := domLevels[len(domLevels)-3]
 
-		var stdoutBytes []byte
+		var output []byte
 		var err error
-
 		if user == "" {
-			stdoutBytes, err = exec.Command("docker-machine", "ip", machine).Output()
+			output, err = exec.Command("docker-machine", "ip", machine).CombinedOutput()
 		} else {
-			stdoutBytes, err = exec.Command("sudo", "-u", user, "docker-machine", "ip", machine).Output()
+			output, err = exec.Command("sudo", "-u", user, "docker-machine", "ip", machine).CombinedOutput()
 		}
 
 		if err != nil {
-			log.Printf("No IP found for machine '%s': %s", machine, err)
+			log.Printf("No IP found for machine '%s' (%s)", machine, output)
 			continue
 		}
-		ip := string(stdoutBytes[:len(stdoutBytes)-1])
+		ip := string(output[:len(output)-1])
 
 		rr = &dns.A{
 			Hdr: dns.RR_Header{
@@ -61,13 +65,14 @@ func lookup(w dns.ResponseWriter, r *dns.Msg) {
 }
 
 func main() {
+	tld := flag.String("tld", "docker", "Top-level domain to use")
 	port := flag.String("port", "53", "Port to listen on")
 	serverOnly := flag.Bool("server-only", false, "Server only, doesn't try to create a resolver configuration")
 	flag.StringVar(&user, "user", os.Getenv("SUDO_USER"), "Execute the 'docker-machine ip' command as this user")
 	flag.Parse()
 
 	if *serverOnly == false && runtime.GOOS == "darwin" {
-		confPath := "/etc/resolver/docker"
+		confPath := "/etc/resolver/" + *tld
 		log.Printf("Creating configuration file at %s...", confPath)
 		conf := []byte("nameserver 127.0.0.1\nport " + *port + "\n")
 		if err := ioutil.WriteFile(confPath, conf, 0644); err != nil {
@@ -82,7 +87,7 @@ func main() {
 		Net:  "udp",
 	}
 
-	dns.HandleFunc("docker.", lookup)
+	dns.HandleFunc(*tld+".", lookup)
 
 	log.Printf("Listening on %s...", addr)
 	go log.Fatal(server.ListenAndServe())
