@@ -2,6 +2,11 @@
 
 DNS for Docker machines, allows to access them with the following domain format : `{machine}.docker`.
 
+- [How it works](#how-it-works)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Configure as a service](#configure-dockness-as-a-service)
+
 ## How it works
 
 It spins up a simplistic DNS server, only listening for questions about A records.
