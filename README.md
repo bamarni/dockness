@@ -21,6 +21,7 @@ Prebuilt binaries are available in the [releases](https://github.com/bamarni/doc
 
 ### From source (requires Go)
 
+    go get github.com/miekg/dns
     go get github.com/bamarni/dockness
 
 ## Usage
