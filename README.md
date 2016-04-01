@@ -30,6 +30,7 @@ Prebuilt binaries are available in the [releases](https://github.com/bamarni/doc
 
     Options:
       -tld          Top-level domain to use (defaults to "docker")
+      -ttl          Time to Live for DNS records (defaults to 0)
       -port         Port to listen on (defaults to "53")
       -server-only  Server only, doesn't try to create a resolver configuration file
       -user         Execute the "docker-machine ip" command as a different user (defaults to "SUDO_USER")

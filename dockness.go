@@ -13,6 +13,7 @@ import (
 	"strings"
 )
 
+var ttl uint
 var user string
 
 func lookup(w dns.ResponseWriter, r *dns.Msg) {
@@ -53,7 +54,7 @@ func lookup(w dns.ResponseWriter, r *dns.Msg) {
 				Name:   q.Name,
 				Rrtype: dns.TypeA,
 				Class:  dns.ClassINET,
-				Ttl:    0,
+				Ttl:    uint32(ttl),
 			},
 			A: net.ParseIP(ip).To4(),
 		}
@@ -66,6 +67,7 @@ func lookup(w dns.ResponseWriter, r *dns.Msg) {
 
 func main() {
 	tld := flag.String("tld", "docker", "Top-level domain to use")
+	flag.UintVar(&ttl, "ttl", 0, "Time to Live for DNS records")
 	port := flag.String("port", "53", "Port to listen on")
 	serverOnly := flag.Bool("server-only", false, "Server only, doesn't try to create a resolver configuration")
 	flag.StringVar(&user, "user", os.Getenv("SUDO_USER"), "Execute the 'docker-machine ip' command as this user")
