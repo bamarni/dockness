@@ -45,6 +45,9 @@ The program can be up and running in one command :
     2016/02/18 10:39:52 Creating configuration file at /etc/resolver/docker...
     2016/02/18 10:39:52 Listening on :53...
 
+*If you don't want to run the program as root, you can create the resolver file yourself and use a high port.
+Cf. example in the [Configure as a service](#configure-dockness-as-a-service) section.*
+
 ### Linux
 
 Even though Linux users might not need a development VM, it can be useful for remote machines
