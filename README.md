@@ -11,7 +11,7 @@ DNS for Docker machines, allows to access them with the following domain format 
 
 It spins up a simplistic DNS server, only listening for questions about A records.
 
-Behind the scene it will run `docker-machine ip {machine}` in order to resolve the IP address of a given machine.
+Behind the scene it will use [libmachine](https://github.com/docker/machine) in order to resolve IP addresses.
 
 ## Installation
 
@@ -21,33 +21,31 @@ Prebuilt binaries are available in the [releases](https://github.com/bamarni/doc
 
 ### From source (requires Go)
 
-    go get github.com/miekg/dns
-    go get github.com/bamarni/dockness
+    go get github.com/miekg/dns github.com/docker/machine github.com/bamarni/dockness
 
 ## Usage
 
     dockness [options...]
 
     Options:
-      -tld          Top-level domain to use (defaults to "docker")
-      -ttl          Time to Live for DNS records (defaults to 0)
-      -port         Port to listen on (defaults to "53")
-      -server-only  Server only, doesn't try to create a resolver configuration file
-      -user         Execute the "docker-machine ip" command as a different user (defaults to "SUDO_USER")
+      -tld    Top-level domain to use (defaults to "docker")
+      -ttl    Time to Live for DNS records (defaults to 0)
+      -port   Port to listen on (defaults to "53")
+      -debug  Enable debugging (defaults to false)
 
 ### Mac OSX
 
 To develop on Mac you probably have a local VM, using VirtualBox for example.
 However this machine gets assigned a dynamic IP address.
 
-The program can be up and running in one command :
+You can be up and running in a few commands, first :
 
-    > sudo dockness
-    2016/02/18 10:39:52 Creating configuration file at /etc/resolver/docker...
-    2016/02/18 10:39:52 Listening on :53...
+    > echo "nameserver 127.0.0.1\nport 10053" | sudo tee /etc/resolver/docker
 
-*If you don't want to run the program as root, you can create the resolver file yourself and use a high port.
-Cf. example in the [Configure as a service](#configure-dockness-as-a-service) section.*
+It tells your Mac that the resolver for `.docker` TLD listens locally on port 10053. You can now run the resolver on this port :
+
+    > dockness -port 10053
+    2016/02/18 10:39:52 Listening on :10053...
 
 ### Linux
 
@@ -77,11 +75,7 @@ Doing so, it will be running in the background automatically when booting your c
 
 ### Mac OSX
 
-Run this command : `echo "nameserver 127.0.0.1\nport 10053" | sudo tee /etc/resolver/docker`
-
-It tells your Mac that the resolver for `.docker` TLD listens locally on port 10053.
-
-You can now create the appropriate service configuration file at `~/Library/LaunchAgents/local.dockness.plist` :
+You can create the appropriate service configuration file at `~/Library/LaunchAgents/local.dockness.plist` :
 
 ``` xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -90,17 +84,11 @@ You can now create the appropriate service configuration file at `~/Library/Laun
 <dict>
         <key>Disabled</key>
         <false/>
-        <key>EnvironmentVariables</key>
-        <dict>
-                <key>PATH</key>
-                <string>/usr/local/bin</string>
-        </dict>
         <key>Label</key>
         <string>local.dockness</string>
         <key>ProgramArguments</key>
         <array>
                 <string>/path/to/dockness</string>
-                <string>-server-only</string>
                 <string>-port</string>
                 <string>10053</string>
         </array>
@@ -109,10 +97,6 @@ You can now create the appropriate service configuration file at `~/Library/Laun
 </dict>
 </plist>
 ```
-
-You'll have to adapt 2 parameters :
-- `/path/to/dockness`
-- `/usr/local/bin`, which is the directory containing your `docker-machine` executable
 
 Finally, the service can be enabled :
 

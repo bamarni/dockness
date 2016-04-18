@@ -2,17 +2,18 @@ package main
 
 import (
 	"flag"
+	"github.com/docker/machine/commands/mcndirs"
+	"github.com/docker/machine/libmachine"
+	mcnlog "github.com/docker/machine/libmachine/log"
 	"github.com/miekg/dns"
-	"io/ioutil"
 	"log"
 	"net"
 	"os"
-	"os/exec"
 	"os/signal"
-	"runtime"
 	"strings"
 )
 
+var api *libmachine.Client
 var ttl uint
 var user string
 
@@ -33,21 +34,19 @@ func lookup(w dns.ResponseWriter, r *dns.Msg) {
 			log.Printf("Couldn't parse the DNS question '%s'", q.Name)
 			continue
 		}
-		machine := domLevels[len(domLevels)-3]
+		machineName := domLevels[len(domLevels)-3]
 
-		var output []byte
-		var err error
-		if user == "" {
-			output, err = exec.Command("docker-machine", "ip", machine).CombinedOutput()
-		} else {
-			output, err = exec.Command("sudo", "-u", user, "docker-machine", "ip", machine).CombinedOutput()
-		}
-
+		machine, err := api.Load(machineName)
 		if err != nil {
-			log.Printf("No IP found for machine '%s' (%s)", machine, output)
+			log.Printf("Couldn't load machine '%s' : %s", machineName, err)
 			continue
 		}
-		ip := string(output[:len(output)-1])
+
+		ip, err := machine.Driver.GetIP()
+		if err != nil {
+			log.Printf("Couldn't find IP for machine '%s' : %s", machineName, err)
+			continue
+		}
 
 		rr = &dns.A{
 			Hdr: dns.RR_Header{
@@ -69,19 +68,12 @@ func main() {
 	tld := flag.String("tld", "docker", "Top-level domain to use")
 	flag.UintVar(&ttl, "ttl", 0, "Time to Live for DNS records")
 	port := flag.String("port", "53", "Port to listen on")
-	serverOnly := flag.Bool("server-only", false, "Server only, doesn't try to create a resolver configuration")
-	flag.StringVar(&user, "user", os.Getenv("SUDO_USER"), "Execute the 'docker-machine ip' command as this user")
+	debug := flag.Bool("debug", false, "Enable debugging")
 	flag.Parse()
 
-	if *serverOnly == false && runtime.GOOS == "darwin" {
-		confPath := "/etc/resolver/" + *tld
-		log.Printf("Creating configuration file at %s...", confPath)
-		conf := []byte("nameserver 127.0.0.1\nport " + *port + "\n")
-		if err := ioutil.WriteFile(confPath, conf, 0644); err != nil {
-			log.Fatalf("Could not create configuration file: %s", err)
-		}
-		defer os.Remove(confPath)
-	}
+	mcnlog.SetDebug(*debug)
+	api = libmachine.NewClient(mcndirs.GetBaseDir(), mcndirs.GetMachineCertDir())
+	defer api.Close()
 
 	addr := ":" + *port
 	server := &dns.Server{
