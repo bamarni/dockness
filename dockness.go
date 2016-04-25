@@ -15,7 +15,6 @@ import (
 
 var api *libmachine.Client
 var ttl uint
-var user string
 
 func lookup(w dns.ResponseWriter, r *dns.Msg) {
 	m := new(dns.Msg)
@@ -31,22 +30,24 @@ func lookup(w dns.ResponseWriter, r *dns.Msg) {
 		domLevels := strings.Split(q.Name, ".")
 		domLevelsLen := len(domLevels)
 		if domLevelsLen < 3 {
-			log.Printf("Couldn't parse the DNS question '%s'", q.Name)
+			mcnlog.Debugf("Couldn't parse the DNS question '%s'", q.Name)
 			continue
 		}
 		machineName := domLevels[len(domLevels)-3]
 
 		machine, err := api.Load(machineName)
 		if err != nil {
-			log.Printf("Couldn't load machine '%s' : %s", machineName, err)
+			mcnlog.Debugf("Couldn't load machine '%s' : %s", machineName, err)
 			continue
 		}
 
 		ip, err := machine.Driver.GetIP()
 		if err != nil {
-			log.Printf("Couldn't find IP for machine '%s' : %s", machineName, err)
+			mcnlog.Debugf("Couldn't find IP for machine '%s' : %s", machineName, err)
 			continue
 		}
+
+		mcnlog.Debugf("Found IP %s for machine '%s'", ip, machineName)
 
 		rr = &dns.A{
 			Hdr: dns.RR_Header{
