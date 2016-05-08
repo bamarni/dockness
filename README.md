@@ -23,6 +23,11 @@ Prebuilt binaries are available in the [releases](https://github.com/bamarni/doc
 
     go get github.com/miekg/dns github.com/docker/machine github.com/bamarni/dockness
 
+### With [Homebrew](http://brew.sh/) (Mac OS X)
+
+    brew tap mkw/homebrew-mkw
+    brew install dockness
+
 ## Usage
 
     dockness [options...]
