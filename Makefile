@@ -1,4 +1,4 @@
-VERSION ?= v2.0.1
+VERSION ?= v2.0.2
 
 clean:
 	rm -rf build
@@ -11,7 +11,7 @@ build: clean
 		tar -cvzf build/releases/dockness-$$os-x64.tar.gz -C build/$$os dockness; \
 	done
 
-release:
+release: build
 	git tag $(VERSION)
 	git push origin $(VERSION)
 	github-release release --user bamarni --repo dockness --tag $(VERSION) --name "$(VERSION)"

@@ -4,6 +4,7 @@ import (
 	"flag"
 	"github.com/docker/machine/commands/mcndirs"
 	"github.com/docker/machine/libmachine"
+	mcnhost "github.com/docker/machine/libmachine/host"
 	mcnlog "github.com/docker/machine/libmachine/log"
 	"github.com/miekg/dns"
 	"log"
@@ -15,6 +16,7 @@ import (
 
 var api *libmachine.Client
 var ttl uint
+var machines = make(map[string]*mcnhost.Host)
 
 func lookup(w dns.ResponseWriter, r *dns.Msg) {
 	m := new(dns.Msg)
@@ -35,13 +37,16 @@ func lookup(w dns.ResponseWriter, r *dns.Msg) {
 		}
 		machineName := domLevels[len(domLevels)-3]
 
-		machine, err := api.Load(machineName)
-		if err != nil {
-			mcnlog.Debugf("Couldn't load machine '%s' : %s", machineName, err)
-			continue
+		if machines[machineName] == nil {
+			machine, err := api.Load(machineName)
+			if err != nil {
+				mcnlog.Debugf("Couldn't load machine '%s' : %s", machineName, err)
+				continue
+			}
+			machines[machineName] = machine
 		}
 
-		ip, err := machine.Driver.GetIP()
+		ip, err := machines[machineName].Driver.GetIP()
 		if err != nil {
 			mcnlog.Debugf("Couldn't find IP for machine '%s' : %s", machineName, err)
 			continue
