@@ -111,9 +111,15 @@ Finally, the service can be enabled :
 
 Here again, it will depend on your Linux distribution.
 We'll take as example [Systemd](https://freedesktop.org/wiki/Software/systemd/),
-which is nowadays the default init system in Ubuntu/Debian.
+which is nowadays the default init system in most distributions.
 
 Create the following file at `/etc/systemd/system/dockness.service`:
 
-    TODO
+    [Unit]
+    Description=Dockness
 
+    [Service]
+    ExecStart=/path/to/dockness -port 10053
+
+    [Install]
+    WantedBy=multi-user.target
