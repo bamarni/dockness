@@ -1,6 +1,9 @@
 language: go
 
 install:
+  - wget -O docker-machine https://github.com/docker/machine/releases/download/v0.7.0/docker-machine-Linux-x86_64
+  - chmod +x docker-machine
+  - export PATH=$PWD:$PATH
   - go get github.com/stretchr/testify/assert github.com/docker/machine github.com/miekg/dns
 
 script:
