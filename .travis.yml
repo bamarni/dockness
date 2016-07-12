@@ -5,7 +5,7 @@ install:
   - chmod +x docker-machine
   - export PATH=$PWD:$PATH
   - export MACHINE_STORAGE_PATH=$PWD/test
-  - go get github.com/stretchr/testify/assert github.com/docker/machine github.com/miekg/dns github.com/docker/docker github.com/samalba/dockerclient golang.org/x/crypto
+  - go get -d github.com/stretchr/testify/assert github.com/docker/machine github.com/miekg/dns github.com/docker/docker github.com/samalba/dockerclient golang.org/x/crypto || true
 
 script:
   - make test
