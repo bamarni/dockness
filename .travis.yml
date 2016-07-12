@@ -1,0 +1,10 @@
+language: go
+
+install:
+  - go get github.com/stretchr/testify/assert github.com/docker/machine github.com/miekg/dns
+
+script:
+  - make test
+
+notifications:
+  email: false

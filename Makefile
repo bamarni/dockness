@@ -1,9 +1,12 @@
 VERSION ?= v2.0.2
 
-clean:
-	rm -rf build
+.PHONY: clean test build release
 
-build: clean
+clean:
+	rm -rf build test
+
+build:
+	rm -rf build
 	mkdir -p build/releases
 	for os in "darwin" "linux" ; do \
 		mkdir build/$$os; \
@@ -11,7 +14,13 @@ build: clean
 		tar -cvzf build/releases/dockness-$$os-x64.tar.gz -C build/$$os dockness; \
 	done
 
-release: build
+test:
+	rm -rf test
+	MACHINE_STORAGE_PATH=$(PWD)/test docker-machine create -d generic --generic-ip-address 1.2.3.4 testi >/dev/null 2>&1&
+	sleep 3
+	go test
+
+release: test build
 	git tag $(VERSION)
 	git push origin $(VERSION)
 	github-release release --user bamarni --repo dockness --tag $(VERSION) --name "$(VERSION)"

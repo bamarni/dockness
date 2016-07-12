@@ -8,7 +8,6 @@ import (
 	"github.com/docker/machine/libmachine"
 	"github.com/docker/machine/libmachine/drivers"
 	"github.com/miekg/dns"
-	//"github.com/pkg/profile"
 	"log"
 	"net"
 	"os"
@@ -16,54 +15,88 @@ import (
 	"strings"
 )
 
-var api *libmachine.Client
-var ttl uint
-
-func findIp(machineName string) (string, error) {
-	machine, err := api.Filestore.Load(machineName)
-	if err != nil {
-		return "", fmt.Errorf("couldn't load machine : %s", err)
-	}
-
-	var baseDriver drivers.BaseDriver
-	err = json.Unmarshal(machine.RawDriver, &baseDriver)
-	if err != nil {
-		return "", fmt.Errorf("couldn't load driver %s", machine.DriverName)
-	}
-
-	return baseDriver.IPAddress, nil
+type Dockness struct {
+	Debug  bool
+	Tld    string
+	Ttl    uint
+	Server *dns.Server
+	Client *libmachine.Client
 }
 
-func lookup(w dns.ResponseWriter, r *dns.Msg) {
+func (dockness *Dockness) Log(msg string) {
+	if dockness.Debug {
+		log.Println(msg)
+	}
+}
+
+func (dockness *Dockness) Listen() error {
+	dns.HandleFunc(dockness.Tld+".", dockness.lookup)
+	if dockness.Server.PacketConn != nil {
+		return dockness.Server.ActivateAndServe()
+	}
+	return dockness.Server.ListenAndServe()
+}
+
+// todo : collect errors and return a multierror
+func (dockness *Dockness) Shutdown() error {
+	dns.HandleRemove(dockness.Tld + ".")
+	dockness.Client.Close()
+
+	return dockness.Server.Shutdown()
+}
+
+func (dockness *Dockness) lookup(w dns.ResponseWriter, r *dns.Msg) {
 	m := new(dns.Msg)
 	m.SetReply(r)
+
+	// check if it's a question from type A
 	if m.Question[0].Qtype != dns.TypeA {
+		dockness.Log("Unsupported question type.")
+		m.SetRcode(r, dns.RcodeNotImplemented)
+		w.WriteMsg(m)
 		return
 	}
 
+	// parse the domain name
 	domLevels := strings.Split(m.Question[0].Name, ".")
 	domLevelsLen := len(domLevels)
 	if domLevelsLen < 3 {
-		log.Printf("Couldn't parse the DNS question '%s'", m.Question[0].Name)
+		dockness.Log(fmt.Sprintf("Couldn't parse the DNS question '%s'.", m.Question[0].Name))
+		m.SetRcode(r, dns.RcodeFormatError)
+		w.WriteMsg(m)
 		return
 	}
 
+	// lookup for machine config
 	machineName := domLevels[len(domLevels)-3]
-	ip, err := findIp(machineName)
+	machine, err := dockness.Client.Filestore.Load(machineName)
 	if err != nil {
-		log.Printf("Couldn't find IP for machine '%s' : %s", machineName, err)
-	} // else {
-	//log.Printf("Found IP %s for machine '%s'", ip, machineName)
-	//}
+		dockness.Log(fmt.Sprintf("Couldn't load machine : %s.", err))
+		m.SetRcode(r, dns.RcodeNameError)
+		w.WriteMsg(m)
+		return
+	}
+
+	// parse machine config
+	var baseDriver drivers.BaseDriver
+	err = json.Unmarshal(machine.RawDriver, &baseDriver)
+	if err != nil {
+		dockness.Log(fmt.Sprintf("Couldn't load driver '%s' : %s.", machine.DriverName, err))
+		m.SetRcode(r, dns.RcodeServerFailure)
+		w.WriteMsg(m)
+		return
+	}
+
+	dockness.Log(fmt.Sprintf("Found IP %s for machine '%s'", baseDriver.IPAddress, machineName))
 
 	rr := &dns.A{
 		Hdr: dns.RR_Header{
 			Name:   m.Question[0].Name,
 			Rrtype: dns.TypeA,
 			Class:  dns.ClassINET,
-			Ttl:    uint32(ttl),
+			Ttl:    uint32(dockness.Ttl),
 		},
-		A: net.ParseIP(ip).To4(),
+		A: net.ParseIP(baseDriver.IPAddress).To4(),
 	}
 
 	m.Answer = append(m.Answer, rr)
@@ -72,32 +105,32 @@ func lookup(w dns.ResponseWriter, r *dns.Msg) {
 }
 
 func main() {
-	tld := flag.String("tld", "docker", "Top-level domain to use")
-	flag.UintVar(&ttl, "ttl", 0, "Time to Live for DNS records")
 	port := flag.String("port", "53", "Port to listen on")
-	_ = flag.Bool("debug", false, "Enable debugging")
+	tld := flag.String("tld", "docker", "Top-level domain to use")
+	ttl := flag.Uint("ttl", 0, "Time to Live for DNS records")
+	debug := flag.Bool("debug", false, "Enable debugging")
 	flag.Parse()
 
-	//if *debug {
-	//	p := profile.Start(profile.MemProfile, profile.ProfilePath("."))
-	//	defer p.Stop()
-	//}
-
-	api = libmachine.NewClient(mcndirs.GetBaseDir(), mcndirs.GetMachineCertDir())
-	defer api.Close()
-
-	addr := ":" + *port
-	server := &dns.Server{
-		Addr: addr,
-		Net:  "udp",
+	dockness := &Dockness{
+		Ttl:    *ttl,
+		Tld:    *tld,
+		Debug:  *debug,
+		Client: libmachine.NewClient(mcndirs.GetBaseDir(), mcndirs.GetMachineCertDir()),
+		Server: &dns.Server{
+			Addr: ":" + *port,
+			Net:  "udp",
+		},
 	}
 
-	dns.HandleFunc(*tld+".", lookup)
-
-	log.Printf("Listening on %s...", addr)
-	go log.Fatal(server.ListenAndServe())
+	go func() {
+		if err := dockness.Listen(); err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, os.Kill)
 	<-sig
+
+	dockness.Shutdown()
 }

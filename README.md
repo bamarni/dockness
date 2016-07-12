@@ -1,4 +1,4 @@
-# dockness
+# dockness [![Build Status](https://travis-ci.org/bamarni/dockness.svg?branch=master)](https://travis-ci.org/bamarni/dockness)
 
 DNS for Docker machines, allows to access them with the following domain format : `{machine}.docker`.
 
