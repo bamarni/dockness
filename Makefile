@@ -21,9 +21,10 @@ build: vendor
 	done
 
 test: vendor
-	docker-machine create -d generic --generic-ip-address 1.2.3.4 test >/dev/null 2>&1&
+	docker-machine create -d generic --generic-ip-address 192.0.2.0 test >/dev/null 2>&1&
 	sleep 3
 	go test
+	go test -bench .
 
 release: test build
 	git tag $(VERSION)

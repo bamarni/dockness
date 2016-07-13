@@ -6,13 +6,14 @@ import (
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/assert"
 	"net"
+	"reflect"
 	"testing"
 )
 
-func CreateDockness(t *testing.T) (*Dockness, string) {
+func CreateDockness() (*Dockness, string) {
 	pc, err := net.ListenPacket("udp", "127.0.0.1:0")
 	if err != nil {
-		t.Fatal("cannot listen for UDP packets")
+		return nil, ""
 	}
 
 	dockness := &Dockness{
@@ -33,7 +34,10 @@ func CreateDockness(t *testing.T) (*Dockness, string) {
 }
 
 func TestExistingMachine(t *testing.T) {
-	dockness, addr := CreateDockness(t)
+	dockness, addr := CreateDockness()
+	if dockness == nil {
+		t.Fatal("couldn't create dockness")
+	}
 	defer dockness.Shutdown()
 
 	req := new(dns.Msg)
@@ -51,11 +55,14 @@ func TestExistingMachine(t *testing.T) {
 	if !ok {
 		t.Fatal("expected an A record")
 	}
-	assert.Equal(t, respA.A, net.IPv4(1, 2, 3, 4).To4())
+	assert.Equal(t, respA.A, net.IPv4(192, 0, 2, 0).To4())
 }
 
 func TestUnexistingMachine(t *testing.T) {
-	dockness, addr := CreateDockness(t)
+	dockness, addr := CreateDockness()
+	if dockness == nil {
+		t.Fatal("couldn't create dockness")
+	}
 	defer dockness.Shutdown()
 
 	req := new(dns.Msg)
@@ -69,7 +76,10 @@ func TestUnexistingMachine(t *testing.T) {
 }
 
 func TestInvalidQuestionType(t *testing.T) {
-	dockness, addr := CreateDockness(t)
+	dockness, addr := CreateDockness()
+	if dockness == nil {
+		t.Fatal("couldn't create dockness")
+	}
 	defer dockness.Shutdown()
 
 	req := new(dns.Msg)
@@ -83,7 +93,10 @@ func TestInvalidQuestionType(t *testing.T) {
 }
 
 func TestInvalidQuestionZone(t *testing.T) {
-	dockness, addr := CreateDockness(t)
+	dockness, addr := CreateDockness()
+	if dockness == nil {
+		t.Fatal("couldn't create dockness")
+	}
 	defer dockness.Shutdown()
 
 	req := new(dns.Msg)
@@ -94,4 +107,26 @@ func TestInvalidQuestionZone(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, resp.Rcode, dns.RcodeFormatError)
+}
+
+func BenchmarkServer(b *testing.B) {
+	dockness, addr := CreateDockness()
+	if dockness == nil {
+		b.Fatal("couldn't create dockness")
+	}
+	defer dockness.Shutdown()
+
+	req := new(dns.Msg)
+	req.SetQuestion("test."+dockness.Tld+".", dns.TypeA)
+
+	client := new(dns.Client)
+	expectedIp := net.IPv4(192, 0, 2, 0).To4()
+
+	for i := 0; i < b.N; i++ {
+		resp, _, _ := client.Exchange(req, addr)
+		respA, _ := resp.Answer[0].(*dns.A)
+		if !reflect.DeepEqual(expectedIp, respA.A) {
+			b.Fail()
+		}
+	}
 }
