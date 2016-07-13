@@ -21,7 +21,10 @@ Prebuilt binaries are available in the [releases](https://github.com/bamarni/doc
 
 ### From source (requires Go)
 
-    go get github.com/miekg/dns github.com/docker/machine github.com/bamarni/dockness
+    go get -d github.com/bamarni/dockness
+    cd $GOPATH/src/github.com/bamarni/dockness
+    make vendor
+    go install
 
 ### With [Homebrew](http://brew.sh/) (Mac OS X)
 
