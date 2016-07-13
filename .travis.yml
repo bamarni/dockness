@@ -1,11 +1,13 @@
 language: go
 
+go:
+  - 1.6
+
 install:
   - wget -O docker-machine https://github.com/docker/machine/releases/download/v0.7.0/docker-machine-Linux-x86_64
   - chmod +x docker-machine
-  - export PATH=$PWD:$PATH
-  - export MACHINE_STORAGE_PATH=$PWD/test
-  - go get -d github.com/stretchr/testify/assert github.com/docker/machine github.com/miekg/dns github.com/docker/docker github.com/samalba/dockerclient golang.org/x/crypto || true
+  - mv docker-machine /usr/local/bin
+  - make vendor
 
 script:
   - make test

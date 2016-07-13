@@ -12,7 +12,7 @@ import (
 func CreateDockness(t *testing.T) (*Dockness, string) {
 	pc, err := net.ListenPacket("udp", "127.0.0.1:0")
 	if err != nil {
-		t.Errorf("cannot listen for UDP packets")
+		t.Fatal("cannot listen for UDP packets")
 	}
 
 	dockness := &Dockness{
@@ -43,13 +43,15 @@ func TestExistingMachine(t *testing.T) {
 	resp, _, err := client.Exchange(req, addr)
 	assert.NoError(t, err)
 
+	if 1 != len(resp.Answer) {
+		t.Fatal("expected an answer")
+	}
+
 	respA, ok := resp.Answer[0].(*dns.A)
 	if !ok {
-		t.Errorf("expected an A record")
+		t.Fatal("expected an A record")
 	}
 	assert.Equal(t, respA.A, net.IPv4(1, 2, 3, 4).To4())
-	err = dockness.Shutdown()
-	assert.NoError(t, err)
 }
 
 func TestUnexistingMachine(t *testing.T) {
