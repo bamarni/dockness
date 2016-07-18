@@ -8,8 +8,10 @@ import (
 	"github.com/docker/machine/libmachine"
 	"github.com/docker/machine/libmachine/drivers"
 	"github.com/miekg/dns"
+	_ "github.com/rakyll/gom/http"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -109,7 +111,13 @@ func main() {
 	tld := flag.String("tld", "docker", "Top-level domain to use")
 	ttl := flag.Uint("ttl", 0, "Time to Live for DNS records")
 	debug := flag.Bool("debug", false, "Enable debugging")
+	profile := flag.Bool("profile", false, "Enable profiling")
+	_ = flag.Int("profile-port", 6060, "Enable profiling on a given port")
 	flag.Parse()
+
+	if *profile {
+		go http.ListenAndServe("localhost:6060", nil)
+	}
 
 	dockness := &Dockness{
 		Ttl:    *ttl,
