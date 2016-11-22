@@ -21,10 +21,7 @@ Prebuilt binaries are available in the [releases](https://github.com/bamarni/doc
 
 ### From source (requires Go)
 
-    go get -d github.com/bamarni/dockness
-    cd $GOPATH/src/github.com/bamarni/dockness
-    make vendor
-    go install
+    go get github.com/bamarni/dockness
 
 ### With [Homebrew](http://brew.sh/) (Mac OS X)
 
