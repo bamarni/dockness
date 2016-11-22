@@ -1,13 +1,14 @@
 language: go
 
 go:
-  - 1.6
+  - 1.7
+  - master
 
 install:
-  - wget -O docker-machine https://github.com/docker/machine/releases/download/v0.7.0/docker-machine-Linux-x86_64
+  - wget -O docker-machine https://github.com/docker/machine/releases/download/v0.8.2/docker-machine-Linux-x86_64
   - chmod +x docker-machine
   - export PATH=$PWD:$PATH
-  - make vendor
+  - go get github.com/kardianos/govendor
 
 script:
   - make test

@@ -120,6 +120,7 @@ Create the following file at `/etc/systemd/system/dockness.service`:
 
     [Unit]
     Description=Dockness
+    After=network.target
 
     [Service]
     ExecStart=/path/to/dockness -port 10053

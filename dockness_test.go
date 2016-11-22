@@ -1,13 +1,13 @@
 package main
 
 import (
+	"net"
+	"testing"
+
 	"github.com/docker/machine/commands/mcndirs"
 	"github.com/docker/machine/libmachine"
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/assert"
-	"net"
-	"reflect"
-	"testing"
 )
 
 func CreateDockness() (*Dockness, string) {
@@ -120,13 +120,8 @@ func BenchmarkServer(b *testing.B) {
 	req.SetQuestion("test."+dockness.Tld+".", dns.TypeA)
 
 	client := new(dns.Client)
-	expectedIp := net.IPv4(192, 0, 2, 0).To4()
 
 	for i := 0; i < b.N; i++ {
-		resp, _, _ := client.Exchange(req, addr)
-		respA, _ := resp.Answer[0].(*dns.A)
-		if !reflect.DeepEqual(expectedIp, respA.A) {
-			b.Fail()
-		}
+		client.Exchange(req, addr)
 	}
 }

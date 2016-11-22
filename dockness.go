@@ -4,15 +4,16 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/docker/machine/commands/mcndirs"
-	"github.com/docker/machine/libmachine"
-	"github.com/docker/machine/libmachine/drivers"
-	"github.com/miekg/dns"
 	"log"
 	"net"
 	"os"
 	"os/signal"
 	"strings"
+
+	"github.com/docker/machine/commands/mcndirs"
+	"github.com/docker/machine/libmachine"
+	"github.com/docker/machine/libmachine/drivers"
+	"github.com/miekg/dns"
 )
 
 type Dockness struct {
@@ -121,16 +122,11 @@ func main() {
 			Net:  "udp",
 		},
 	}
+	defer dockness.Shutdown()
 
-	go func() {
-		if err := dockness.Listen(); err != nil {
-			log.Fatal(err)
-		}
-	}()
+	go log.Fatal(dockness.Listen())
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, os.Kill)
 	<-sig
-
-	dockness.Shutdown()
 }
