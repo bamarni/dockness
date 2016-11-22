@@ -1,7 +1,7 @@
 VERSION ?= v2.0.2
 export MACHINE_STORAGE_PATH=$(PWD)/test
 
-.PHONY: clean test build release
+.PHONY: clean test build release vendor
 
 vendor:
 	govendor sync

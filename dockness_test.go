@@ -2,6 +2,7 @@ package main
 
 import (
 	"net"
+	"sync"
 	"testing"
 
 	"github.com/docker/machine/commands/mcndirs"
@@ -16,19 +17,22 @@ func CreateDockness() (*Dockness, string) {
 		return nil, ""
 	}
 
+	waitLock := sync.Mutex{}
+	waitLock.Lock()
+
 	dockness := &Dockness{
 		//Debug:  true,
 		Tld:    "docker",
 		Client: libmachine.NewClient(mcndirs.GetBaseDir(), mcndirs.GetMachineCertDir()),
 		Server: &dns.Server{
-			PacketConn: pc,
+			PacketConn:        pc,
+			NotifyStartedFunc: waitLock.Unlock,
 		},
 	}
 
-	go func() {
-		dockness.Listen()
-		pc.Close()
-	}()
+	go dockness.Listen()
+
+	waitLock.Lock()
 
 	return dockness, pc.LocalAddr().String()
 }
@@ -107,6 +111,23 @@ func TestInvalidQuestionZone(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, resp.Rcode, dns.RcodeFormatError)
+}
+
+func TestShutdown(t *testing.T) {
+	dockness, addr := CreateDockness()
+	if dockness == nil {
+		t.Fatal("couldn't create dockness")
+	}
+	err := dockness.Shutdown()
+	assert.NoError(t, err)
+
+	req := new(dns.Msg)
+	req.SetQuestion("test."+dockness.Tld+".", dns.TypeA)
+
+	client := new(dns.Client)
+	_, _, err = client.Exchange(req, addr)
+
+	assert.Error(t, err)
 }
 
 func BenchmarkServer(b *testing.B) {

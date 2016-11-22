@@ -40,6 +40,8 @@ func (dockness *Dockness) Listen() error {
 
 // todo : collect errors and return a multierror
 func (dockness *Dockness) Shutdown() error {
+	dockness.Log("Shutting down DNS server.")
+
 	dns.HandleRemove(dockness.Tld + ".")
 	dockness.Client.Close()
 
@@ -124,7 +126,11 @@ func main() {
 	}
 	defer dockness.Shutdown()
 
-	go log.Fatal(dockness.Listen())
+	go func() {
+		if err := dockness.Listen(); err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt, os.Kill)
