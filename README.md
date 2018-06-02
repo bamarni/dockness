@@ -45,7 +45,7 @@ However this machine gets assigned a dynamic IP address.
 
 You can be up and running in a few commands, first :
 
-    > echo "nameserver 127.0.0.1\nport 10053" | sudo tee /etc/resolver/docker
+    > echo -e "nameserver 127.0.0.1\nport 10053" | sudo tee /etc/resolver/docker
 
 It tells your Mac that the resolver for `.docker` TLD listens locally on port 10053. You can now run the resolver on this port :
 
